@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: TacoCloud
+  datasource:
+   generate-unique-name: false
+   name: tacocloud
+
+
+#jdbc:h2:mem:tacocloud
