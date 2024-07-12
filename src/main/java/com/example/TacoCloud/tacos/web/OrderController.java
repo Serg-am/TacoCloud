@@ -14,7 +14,7 @@ import org.springframework.web.bind.support.SessionStatus;
 import javax.validation.Valid;
 
 
-@Slf4j
+
 @Controller
 @RequestMapping("/orders")
 @SessionAttributes("tacoOrder")

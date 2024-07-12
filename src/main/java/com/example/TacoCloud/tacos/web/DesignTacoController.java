@@ -8,13 +8,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
-
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Controller
 @RequestMapping("/design")
 @SessionAttributes("tacoOrder")
@@ -64,7 +62,7 @@ public class DesignTacoController {
             return "design";
         }
 
-        tacoOrder.addTaco(new TacoUDT(taco.getName(), taco.getIngredients()));
+        tacoOrder.addTaco(taco);
 
         return "redirect:/orders/current";
     }
