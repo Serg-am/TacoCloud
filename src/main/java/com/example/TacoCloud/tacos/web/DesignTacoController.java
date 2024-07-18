@@ -2,6 +2,8 @@ package com.example.TacoCloud.tacos.web;
 
 import com.example.TacoCloud.tacos.*;
 import com.example.TacoCloud.tacos.data.IngredientRepository;
+import com.example.TacoCloud.tacos.data.TacoRepository;
+import com.example.TacoCloud.tacos.data.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,21 +11,32 @@ import org.springframework.ui.Model;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.example.TacoCloud.tacos.Ingredient.Type;
 
 @Controller
 @RequestMapping("/design")
-@SessionAttributes("tacoOrder")
+@SessionAttributes("order")
+@Slf4j
 public class DesignTacoController {
 
     private final IngredientRepository ingredientRepo;
 
+    private TacoRepository tacoRepo;
+
+    private UserRepository userRepo;
+
     @Autowired
     public DesignTacoController(
-            IngredientRepository ingredientRepo) {
+            IngredientRepository ingredientRepo,
+            TacoRepository tacoRepo,
+            UserRepository userRepo) {
         this.ingredientRepo = ingredientRepo;
+        this.tacoRepo = tacoRepo;
+        this.userRepo = userRepo;
     }
 
     @ModelAttribute
@@ -31,14 +44,14 @@ public class DesignTacoController {
         List<Ingredient> ingredients = new ArrayList<>();
         ingredientRepo.findAll().forEach(i -> ingredients.add(i));
 
-        Type[] types = Type.values();
+        Type[] types = Ingredient.Type.values();
         for (Type type : types) {
             model.addAttribute(type.toString().toLowerCase(),
                     filterByType(ingredients, type));
         }
     }
 
-    @ModelAttribute(name = "tacoOrder")
+    @ModelAttribute(name = "order")
     public TacoOrder order() {
         return new TacoOrder();
     }
@@ -46,6 +59,13 @@ public class DesignTacoController {
     @ModelAttribute(name = "taco")
     public Taco taco() {
         return new Taco();
+    }
+
+    @ModelAttribute(name = "user")
+    public User user(Principal principal) {
+        String username = principal.getName();
+        User user = userRepo.findByUsername(username);
+        return user;
     }
 
     @GetMapping
@@ -56,13 +76,16 @@ public class DesignTacoController {
     @PostMapping
     public String processTaco(
             @Valid Taco taco, Errors errors,
-            @ModelAttribute TacoOrder tacoOrder) {
+            @ModelAttribute TacoOrder order) {
+
+        log.info("   --- Saving taco");
 
         if (errors.hasErrors()) {
             return "design";
         }
 
-        tacoOrder.addTaco(taco);
+        Taco saved = tacoRepo.save(taco);
+        order.addTaco(saved);
 
         return "redirect:/orders/current";
     }
@@ -74,4 +97,5 @@ public class DesignTacoController {
                 .filter(x -> x.getType().equals(type))
                 .collect(Collectors.toList());
     }
+
 }
