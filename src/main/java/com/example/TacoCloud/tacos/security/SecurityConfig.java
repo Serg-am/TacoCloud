@@ -1,8 +1,7 @@
 package com.example.TacoCloud.tacos.security;
 
-import com.example.TacoCloud.tacos.User;
-import com.example.TacoCloud.tacos.data.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -10,37 +9,30 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
+
 
 @Configuration
-public class SecurityConfig {
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    @Value("${spring.security.user.name}")
+    private String username;
 
-    @Bean
-    public UserDetailsService userDetailsService(UserRepository userRepo) {
-        return username -> {
-            User user = userRepo.findByUsername(username);
-            if (user != null) {
-                return user;
-            }
-            throw new UsernameNotFoundException(
-                    "User '" + username + "' not found");
-        };
-    }
+    @Value("${spring.security.user.password}")
+    private String password;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
                 .authorizeRequests()
-                .mvcMatchers("/design", "/orders").hasRole("USER")
-                .anyRequest().permitAll()
+                .antMatchers("/design", "/orders")
+                .access("hasRole('USER')")
+                .antMatchers("/**").access("permitAll")
 
                 .and()
                 .formLogin()
@@ -50,7 +42,6 @@ public class SecurityConfig {
                 .logout()
                 .logoutSuccessUrl("/")
 
-                // Make H2-Console non-secured; for debug purposes
                 .and()
                 .csrf()
                 .ignoringAntMatchers("/h2-console/**")
@@ -60,9 +51,27 @@ public class SecurityConfig {
                 .headers()
                 .frameOptions()
                 .sameOrigin()
+        ;
+    }
 
-                .and()
-                .build();
+    @Bean
+    public PasswordEncoder encoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth)
+            throws Exception {
+
+        auth
+                .userDetailsService(userDetailsService)
+                .passwordEncoder(encoder());
+
+        auth
+                .inMemoryAuthentication()
+                .withUser(username)
+                .password(encoder().encode(password))
+                .roles("USER");
     }
 
 }
